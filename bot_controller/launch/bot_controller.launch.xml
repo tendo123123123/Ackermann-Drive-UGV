@@ -1,0 +1,37 @@
+<launch>
+
+    <arg name="diff_drive_controller" default="False" />
+    <arg name="use_sim_time" default="True" />
+
+    <node pkg="controller_manager" exec="spawner" args="joint_state_broadcaster --controller-manager /controller_manager">
+        <param name="use_sim_time" value="$(var use_sim_time)" />
+    </node>
+
+
+    <node pkg="controller_manager" exec="spawner" args="bot_controller --controller-manager /controller_manager" if="$(var diff_drive_controller)">
+        <param name="use_sim_time" value="$(var use_sim_time)" />
+    </node>
+
+    <group unless="$(var diff_drive_controller)">
+        <!-- Steering Position Controller -->
+        <node pkg="controller_manager" exec="spawner" 
+            args="forward_position_controller --controller-manager /controller_manager">
+            <param name="use_sim_time" value="$(var use_sim_time)" />
+        </node>
+
+        <!-- Wheel Velocity Controller -->
+        <node pkg="controller_manager" exec="spawner" 
+            args="forward_velocity_controller --controller-manager /controller_manager">
+            <param name="use_sim_time" value="$(var use_sim_time)" />
+        </node>
+
+        <!-- Custom Ackermann Twist Controller -->
+        <node pkg="custom_ackermann_controller" exec="ackermann_twist_controller" 
+            name="ackermann_twist_controller" output="screen">
+            <param name="use_sim_time" value="$(var use_sim_time)" />
+        </node>
+    </group>
+
+    
+</launch>
+
