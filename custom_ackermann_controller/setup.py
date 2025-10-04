@@ -1,6 +1,4 @@
 from setuptools import find_packages, setup
-import os
-from glob import glob
 
 package_name = 'custom_ackermann_controller'
 
@@ -12,7 +10,8 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
-        (os.path.join('share', package_name, 'launch'), glob('launch/*.launch.py')),
+        ('share/' + package_name + '/config', ['config/robot_localization.yaml']),
+        ('share/' + package_name + '/launch', ['launch/joystick_teleop.launch.py']),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -24,6 +23,7 @@ setup(
     entry_points={
         'console_scripts': [
             'ackermann_twist_controller = custom_ackermann_controller.ackermann_twist_controller:main',
+            'wheel_odometry = custom_ackermann_controller.wheel_odometry:main',
         ],
     },
 )

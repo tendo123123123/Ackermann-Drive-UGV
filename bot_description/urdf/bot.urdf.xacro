@@ -116,7 +116,6 @@
   </joint>
   
   <!-- ========== FRONT LEFTWHEEL ========== -->
-  
 
   <link name="base_front_left_wheel">
     <inertial>
@@ -471,12 +470,56 @@
 
   <gazebo reference="imu_link">
     <sensor name="imu" type="imu">
-      <always_on>1</always_on>
-      <update_rate>50</update_rate>
+      <always_on>true</always_on>
+      <update_rate>100</update_rate>  <!-- Higher rate for better fusion -->
       <visualize>true</visualize>
-      <topic>imu</topic>
+      <topic>/imu</topic>         <!-- Standard IMU topic -->
       <enable_metrics>true</enable_metrics>
       <gz_frame_id>imu_link</gz_frame_id>
+      
+      <!-- Enhanced IMU parameters for accurate sensing -->
+      <imu>
+        <angular_velocity>
+          <x>
+            <noise type="gaussian">
+              <mean>0.0</mean>
+              <stddev>2e-4</stddev>
+            </noise>
+          </x>
+          <y>
+            <noise type="gaussian">
+              <mean>0.0</mean>
+              <stddev>2e-4</stddev>
+            </noise>
+          </y>
+          <z>
+            <noise type="gaussian">
+              <mean>0.0</mean>
+              <stddev>2e-4</stddev>
+            </noise>
+          </z>
+        </angular_velocity>
+        <linear_acceleration>
+          <x>
+            <noise type="gaussian">
+              <mean>0.0</mean>
+              <stddev>1.7e-2</stddev>
+            </noise>
+          </x>
+          <y>
+            <noise type="gaussian">
+              <mean>0.0</mean>
+              <stddev>1.7e-2</stddev>
+            </noise>
+          </y>
+          <z>
+            <noise type="gaussian">
+              <mean>0.0</mean>
+              <stddev>1.7e-2</stddev>
+            </noise>
+          </z>
+        </linear_acceleration>
+      </imu>
     </sensor>
   </gazebo>
 
@@ -489,44 +532,52 @@
     </sensor>
   </gazebo> 
 
- <!-- Gazebo wheel physics -->
+ <!-- Optimized Gazebo wheel physics for accurate odometry -->
+  
+  <!-- Front wheels Free-rolling, lower friction for Ackermann steering -->
   <gazebo reference="base_front_left_wheel">
-    <mu1>1.2</mu1>
-    <mu2>1.0</mu2>
-    <kp>20000.0</kp>
-    <kd>20.0</kd>
-    <minDepth>0.001</minDepth>
-    <maxVel>100</maxVel>
-    <fdir1>0 -1 0</fdir1>
+    <mu1>0.8</mu1>        <!-- Lower friction for free-rolling front wheels -->
+    <mu2>0.6</mu2>        <!-- Reduced lateral friction -->
+    <kp>50000.0</kp>      <!-- Higher contact stiffness for less slip -->
+    <kd>50.0</kd>         <!-- Higher damping for stability -->
+    <minDepth>0.0005</minDepth>  <!-- Smaller penetration depth -->
+    <maxVel>10.0</maxVel>        <!-- Lower max velocity for stability -->
+    <fdir1>0 -1 0</fdir1>        <!-- Primary friction direction -->
+    <material>Gazebo/Grey</material>
   </gazebo>
 
   <gazebo reference="base_front_right_wheel">
-    <mu1>1.2</mu1>
-    <mu2>1.0</mu2>
-    <kp>20000.0</kp>
-    <kd>20.0</kd>
-    <minDepth>0.001</minDepth>
-    <maxVel>100</maxVel>
+    <mu1>0.8</mu1>
+    <mu2>0.6</mu2>
+    <kp>50000.0</kp>
+    <kd>50.0</kd>
+    <minDepth>0.0005</minDepth>
+    <maxVel>10.0</maxVel>
     <fdir1>0 -1 0</fdir1>
+    <material>Gazebo/Grey</material>
   </gazebo>
+  
+  <!-- Rear wheels Drive wheels, optimized for no-slip control -->
   <gazebo reference="base_back_left_wheel">
-    <mu1>1.2</mu1>
-    <mu2>1.0</mu2>
-    <kp>20000.0</kp>
-    <kd>20.0</kd>
-    <minDepth>0.001</minDepth>
-    <maxVel>100</maxVel>
-    <fdir1>0 -1 0</fdir1>
+    <mu1>1.8</mu1>        <!-- Higher friction for drive wheels -->
+    <mu2>1.5</mu2>        <!-- High lateral friction to prevent sliding -->
+    <kp>100000.0</kp>     <!-- Very high stiffness for accurate control -->
+    <kd>100.0</kd>        <!-- Higher damping for precise motion -->
+    <minDepth>0.0005</minDepth>  <!-- Smaller penetration depth -->
+    <maxVel>10.0</maxVel>        <!-- Lower max velocity for stability -->
+    <fdir1>0 -1 0</fdir1>        <!-- Primary friction direction -->
+    <material>Gazebo/Black</material>
   </gazebo>
 
   <gazebo reference="base_back_right_wheel">
-    <mu1>1.2</mu1>
-    <mu2>1.0</mu2>
-    <kp>20000.0</kp>
-    <kd>20.0</kd>
-    <minDepth>0.001</minDepth>
-    <maxVel>100</maxVel>
+    <mu1>1.8</mu1>
+    <mu2>1.5</mu2>
+    <kp>100000.0</kp>
+    <kd>100.0</kd>
+    <minDepth>0.0005</minDepth>
+    <maxVel>10.0</maxVel>
     <fdir1>0 -1 0</fdir1>
+    <material>Gazebo/Black</material>
   </gazebo>
 
   <gazebo>

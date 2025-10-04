@@ -1,5 +1,4 @@
 <launch>
-
     <arg name="diff_drive_controller" default="False" />
     <arg name="use_sim_time" default="True" />
 
@@ -30,8 +29,40 @@
             name="ackermann_twist_controller" output="screen">
             <param name="use_sim_time" value="$(var use_sim_time)" />
         </node>
+
+        <!-- Wheel Odometry Node -->
+        <node pkg="custom_ackermann_controller" exec="wheel_odometry" 
+            name="wheel_odometry_node" output="screen">
+            <param name="use_sim_time" value="$(var use_sim_time)" />
+            <param name="wheelbase" value="0.9" />
+            <param name="wheel_radius" value="0.175" />
+            <param name="track_width" value="0.67" />
+            <param name="odom_frame" value="odom" />
+            <param name="base_frame" value="base_footprint" />
+            <param name="left_wheel_joint" value="base_back_left_wheel_joint" />
+            <param name="right_wheel_joint" value="base_back_right_wheel_joint" />
+            <param name="left_steering_joint" value="base_front_left_steering_joint" />
+            <param name="right_steering_joint" value="base_front_right_steering_joint" />
+            <param name="publish_rate" value="50.0" />
+        </node>
+
+        <!-- Robot Localization EKF - Fuses wheel odometry + IMU -->
+        <!-- This node will publish the authoritative odom→base_footprint transform -->
+        <!-- AND provides /odometry/filtered topic for navigation -->
+        <node pkg="robot_localization" exec="ekf_node" 
+            name="ekf_filter_node" output="screen"
+            args="--ros-args --params-file $(find-pkg-share custom_ackermann_controller)/config/robot_localization.yaml">
+            <param name="use_sim_time" value="$(var use_sim_time)" />
+            <!-- EKF outputs both TF transform and filtered odometry topic -->
+        </node>
+
+        <!-- Map frame for navigation stack - Updated to use filtered odometry -->
+        <node pkg="tf2_ros" exec="static_transform_publisher" 
+            name="map_odom_publisher" 
+            args="0 0 0 0 0 0 map odom">
+            <param name="use_sim_time" value="$(var use_sim_time)" />
+        </node>
     </group>
 
     
 </launch>
-
