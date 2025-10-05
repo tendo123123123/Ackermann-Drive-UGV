@@ -129,8 +129,8 @@
       <geometry>
         <cylinder radius="0.175" length="0.13"/>
       </geometry>
-      <material name="red">
-        <color rgba="0.8 0.2 0.2 1"/>
+      <material name="grey">
+        <color rgba="0.5 0.5 0.5 1"/>
       </material>
     </visual>
 
@@ -164,8 +164,8 @@
       <geometry>
         <cylinder radius="0.175" length="0.13"/>
       </geometry>
-      <material name="red">
-        <color rgba="0.8 0.2 0.2 1"/>
+      <material name="grey">
+        <color rgba="0.5 0.5 0.5 1"/>
       </material>
     </visual>
 
@@ -199,8 +199,8 @@
       <geometry>
         <cylinder radius="0.175" length="0.13"/>
       </geometry>
-      <material name="red">
-        <color rgba="0.8 0.2 0.2 1"/>
+      <material name="black">
+        <color rgba="0.1 0.1 0.1 1"/>
       </material>
     </visual>
 
@@ -234,8 +234,8 @@
       <geometry>
         <cylinder radius="0.175" length="0.13"/>
       </geometry>
-      <material name="red">
-        <color rgba="0.8 0.2 0.2 1"/>
+      <material name="black">
+        <color rgba="0.1 0.1 0.1 1"/>
       </material>
     </visual>
 
@@ -300,7 +300,7 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 1.57079632679" />
       <geometry>
-         <mesh filename="file:///home/aditya-pachauri/prototype_autonomous_bot_cir_ws/src/bot_description/meshes/3dCamera.DAE" scale="1 1 1"/>
+         <mesh filename="file://$(find bot_description)/meshes/3dCamera.DAE" scale="1 1 1"/>
       </geometry>
     </visual>
 
@@ -313,7 +313,7 @@
   </link>
 
   <joint name="camera_joint" type="fixed">
-    <origin xyz="0.085 0 0.002" rpy="0 0.0 0"/>
+    <origin xyz="0 0.685 0.15" rpy="0 0.0 1.57079632679"/>
     <parent link="base_link"/>
     <child link="rgb_camera"/>
     <axis xyz="0.0 0 0"/>
@@ -367,12 +367,12 @@
 
     <visual>
       <geometry>
-        <mesh filename="file:///home/aditya-pachauri/prototype_autonomous_bot_cir_ws/src/bot_description/meshes/lidar_3d_v1.dae" scale="1 1 1"/>
+        <mesh filename="file://$(find bot_description)/meshes/lidar_3d_v1.dae" scale="1 1 1"/>
       </geometry>
     </visual>
 
     <collision>
-      <origin xyz="0 0 0.03585" rpy="0 0 0"/>
+
       <geometry>
         <cylinder radius="0.0516" length="0.0717" />
       </geometry>
@@ -406,15 +406,15 @@
   </link>
 
     <joint name="lidar_base_joint" type="fixed">
-    <origin xyz="0 0 0.02" rpy="0 0.0 3.14"/>
+    <origin xyz="0 0 0.25" rpy="0 0.0 0.0"/>
     <parent link="base_link"/>
     <child link="lidar_base"/>
     <axis xyz="0.0 0.0 1.0"/>
   </joint>
 
   <joint name="laser_joint" type="fixed">
-    <origin xyz="0 0 0.046" rpy="0 0.0 3.14"/>
-    <parent link="base_link"/>
+    <origin xyz="0 0 0.027" rpy="0 0.0 0.0"/>
+    <parent link="lidar_base"/>
     <child link="laser_link"/>
     <axis xyz="0.0 0.0 1.0"/>
   </joint>
@@ -582,7 +582,7 @@
 
   <gazebo>
     <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
-      <parameters>/home/aditya-pachauri/prototype_autonomous_bot_cir_ws/src/bot_controller/config/bot_controller.yaml</parameters>
+      <parameters>$(find bot_controller)/config/bot_controller.yaml</parameters>
     </plugin>
     
     <plugin filename="gz-sim-imu-system" name="gz::sim::systems::Imu">
