@@ -13,7 +13,7 @@ class WheelOdometryNode(Node):
 
         self.declare_parameter('wheelbase', 0.9)  # Distance between front and rear axles
         self.declare_parameter('wheel_radius', 0.175) 
-        self.declare_parameter('track_width', 0.67)  # Distance between left and right wheels (matches ackermann_twist_controller)
+        self.declare_parameter('track_width', 0.67)  # Distance between left and right wheels 
         self.declare_parameter('odom_frame', 'odom')
         self.declare_parameter('base_frame', 'base_footprint')
         self.declare_parameter('left_wheel_joint', 'base_back_left_wheel_joint')
@@ -44,7 +44,7 @@ class WheelOdometryNode(Node):
 
         
         self.odom_pub = self.create_publisher(Odometry, '/odom', 10)
-        # TF broadcasting removed - robot_localization will handle odom→base_footprint transform
+        
         self.joint_sub = self.create_subscription(JointState, '/joint_states', self.joint_state_callback, 10)
         
         self.timer = self.create_timer(1.0 / self.publish_rate, self.publish_odometry)
@@ -53,26 +53,26 @@ class WheelOdometryNode(Node):
         self.current_wheel_vel = {'left': 0.0, 'right': 0.0}
         self.initialized = False
 
-        # Enhanced filtering parameters
-        self.velocity_filter_alpha = 0.3  # Low-pass filter coefficient
+        # Various Filtering Parameters
+        self.velocity_filter_alpha = 0.3  # Low Pass filter coefficient
         self.filtered_wheel_vel = {'left': 0.0, 'right': 0.0}
-        self.max_wheel_acceleration = 5.0  # m/s² - maximum realistic wheel acceleration
+        self.max_wheel_acceleration = 5.0  # Maximum acceleration of the robot (in m/s^2)
         
-        # Slip detection parameters
-        self.expected_vel_diff_threshold = 0.1  # m/s - max expected diff between wheels
+        # Slip Detection Parameters
+        self.expected_vel_diff_threshold = 0.1  # Maximum velocity difference between wheels (in m/s)
         self.slip_detection_enabled = True
 
-        self.get_logger().info('Enhanced Wheel Odometry Node Started - waiting for joint states...')
+        self.get_logger().info('Wheel Odometry Node Started - waiting for joint states...')
 
     def joint_state_callback(self, msg: JointState):
         current_time = self.get_clock().now()
         
-        # Initialize on first callback
+        # Initializing on first callback
         if not self.initialized:
             self.joint_names = list(msg.name)
             self.get_logger().info(f"Available joints: {self.joint_names}")
             
-            # Check if required joints exist
+            # Checking if required joints are being published
             required_joints = [self.left_wheel_joint, self.right_wheel_joint, 
                              self.left_steering_joint, self.right_steering_joint]
             missing_joints = [joint for joint in required_joints if joint not in self.joint_names]
@@ -81,7 +81,7 @@ class WheelOdometryNode(Node):
                 self.get_logger().warn(f"Missing joints: {missing_joints}")
                 return
             
-            # Initialize wheel positions
+            # Initializing wheel positions
             try:
                 left_wheel_pos = msg.position[self.joint_names.index(self.left_wheel_joint)]
                 right_wheel_pos = msg.position[self.joint_names.index(self.right_wheel_joint)]
@@ -89,7 +89,6 @@ class WheelOdometryNode(Node):
                 self.last_wheel_pos['right'] = right_wheel_pos
                 self.last_time = current_time
                 self.initialized = True
-                self.get_logger().info("Wheel odometry initialized successfully!")
             except (ValueError, IndexError) as e:
                 self.get_logger().error(f"Failed to initialize: {e}")
                 return
@@ -103,119 +102,88 @@ class WheelOdometryNode(Node):
             left_steer_pos = msg.position[self.joint_names.index(self.left_steering_joint)]
             right_steer_pos = msg.position[self.joint_names.index(self.right_steering_joint)]
 
-            # --- Calculate velocities ONLY if enough time has passed ---
-            if dt > 0.001:  # Minimum 1ms between updates to avoid noise
-                # Wheel angular velocity (rad/s)
+            # Calculating velocity for odometry calculation only if enough time have passed to avoid noise
+            if dt > 0.001: 
+                # Wheel angular velocities
                 left_wheel_ang_vel = (left_wheel_pos - self.last_wheel_pos['left']) / dt
                 right_wheel_ang_vel = (right_wheel_pos - self.last_wheel_pos['right']) / dt
                 
-                # Calculate raw wheel linear velocity (m/s)
+                # Calculating raw linear velocities of the wheels
                 raw_left_vel = left_wheel_ang_vel * self.wheel_radius
                 raw_right_vel = right_wheel_ang_vel * self.wheel_radius
 
-                # Apply acceleration limiting to prevent unrealistic jumps
-                if hasattr(self, 'last_wheel_vel'):
-                    max_vel_change = self.max_wheel_acceleration * dt
-                    left_vel_change = raw_left_vel - self.last_wheel_vel['left']
-                    right_vel_change = raw_right_vel - self.last_wheel_vel['right']
+                # Appling acceleration limitng to prevent unrealisitic jumps in odometry
+                max_vel_change = self.max_wheel_acceleration * dt
+                left_vel_change = raw_left_vel - self.last_wheel_vel['left']
+                right_vel_change = raw_right_vel - self.last_wheel_vel['right']
                     
-                    # Limit acceleration
-                    if abs(left_vel_change) > max_vel_change:
-                        raw_left_vel = self.last_wheel_vel['left'] + math.copysign(max_vel_change, left_vel_change)
-                    if abs(right_vel_change) > max_vel_change:
-                        raw_right_vel = self.last_wheel_vel['right'] + math.copysign(max_vel_change, right_vel_change)
+                # Limiting acceleration
+                if abs(left_vel_change) > max_vel_change:
+                    raw_left_vel = self.last_wheel_vel['left'] + math.copysign(max_vel_change, left_vel_change)
+                if abs(right_vel_change) > max_vel_change:
+                    raw_right_vel = self.last_wheel_vel['right'] + math.copysign(max_vel_change, right_vel_change)
 
-                # Apply low-pass filtering for smoother velocities
+                # Applying Low Pass filter to filter out high frequency data
                 self.filtered_wheel_vel['left'] = (1 - self.velocity_filter_alpha) * self.filtered_wheel_vel['left'] + self.velocity_filter_alpha * raw_left_vel
                 self.filtered_wheel_vel['right'] = (1 - self.velocity_filter_alpha) * self.filtered_wheel_vel['right'] + self.velocity_filter_alpha * raw_right_vel
 
-                # Apply deadzone to eliminate encoder noise
+                # Applying velocity deadzone to handle encoder noise
                 if abs(self.filtered_wheel_vel['left']) < 0.005:  # 5mm/s deadzone
                     self.filtered_wheel_vel['left'] = 0.0
                 if abs(self.filtered_wheel_vel['right']) < 0.005:
                     self.filtered_wheel_vel['right'] = 0.0
 
-                # Update current velocities with filtered values
+                # Updating with filtered velocities
                 self.current_wheel_vel['left'] = self.filtered_wheel_vel['left']
                 self.current_wheel_vel['right'] = self.filtered_wheel_vel['right']
                 
-                # Store for next iteration
                 self.last_wheel_vel = {'left': raw_left_vel, 'right': raw_right_vel}
 
-                # Calculate effective robot steering angle from both wheel steering angles
+                # Calculating robot steering angle from steer wheel positions
                 self.current_steering_angle = self.calculate_robot_steering_angle(left_steer_pos, right_steer_pos)
 
-                # --- Update last known state ---
                 self.last_wheel_pos['left'] = left_wheel_pos
                 self.last_wheel_pos['right'] = right_wheel_pos
                 self.last_time = current_time
             else:
-                # If dt is too small, keep previous velocities but don't integrate
+                # If dt is too small, ignoring it and keeping the current state
                 pass
 
         except (ValueError, IndexError) as e:
-            self.get_logger().warn(f'Joint not found in /joint_states: {e}')
+            self.get_logger().warn(f'Joints not found in /joint_states topic: {e}')
             self.get_logger().info(f'Available joints: {self.joint_names}')
             self.get_logger().info(f'Looking for: {self.left_wheel_joint}, {self.right_wheel_joint}, {self.left_steering_joint}, {self.right_steering_joint}')
 
     def calculate_robot_steering_angle(self, left_steer_angle, right_steer_angle):
-        """
-        Calculate the effective robot steering angle from individual wheel steering angles.
         
-        Theory:
-        In Ackermann steering, both wheels follow circular arcs around a common instantaneous 
-        center of rotation (ICR). We calculate the ICR from the wheel geometry and then 
-        determine the equivalent bicycle model steering angle.
-        
-        Method:
-        1. Calculate turning radius for each wheel based on its steering angle and position
-        2. Find the instantaneous center of rotation (ICR) 
-        3. Calculate the equivalent bicycle model steering angle for the robot's centerline
-        """
-        
-        # Handle straight line case (both angles near zero)
         if abs(left_steer_angle) < 0.001 and abs(right_steer_angle) < 0.001:
             return 0.0
-            
-        # If only one wheel is steering significantly, use that as reference
-        if abs(left_steer_angle) < 0.001:
-            return right_steer_angle * 0.8  # Scale factor for outer wheel approximation
-        if abs(right_steer_angle) < 0.001:
-            return left_steer_angle * 0.8   # Scale factor for outer wheel approximation
         
         # Calculate turning radius to ICR for each wheel
         # For Ackermann geometry: R_wheel = wheelbase / tan(steer_angle)
         try:
             # Calculate the radius from each wheel to the instantaneous center of rotation
-            if abs(left_steer_angle) > 0.001:
-                left_wheel_radius = self.wheelbase / math.tan(abs(left_steer_angle))
-            else:
-                left_wheel_radius = float('inf')
-                
-            if abs(right_steer_angle) > 0.001:
-                right_wheel_radius = self.wheelbase / math.tan(abs(right_steer_angle))
-            else:
-                right_wheel_radius = float('inf')
-            
-            # Determine turn direction (positive = left turn, negative = right turn)
+            left_wheel_radius = self.wheelbase / math.tan(abs(left_steer_angle))
+            right_wheel_radius = self.wheelbase / math.tan(abs(right_steer_angle))
+     
+            # Determining Turn Direction (Positive for Left turn , Negative for Right turn)
             turn_direction = 0.0
             if left_steer_angle > 0.001 or right_steer_angle > 0.001:
                 turn_direction = 1.0  # Left turn
             elif left_steer_angle < -0.001 or right_steer_angle < -0.001:
                 turn_direction = -1.0  # Right turn
             
-            # Calculate the robot's center turning radius
-            # This is the radius from the robot's center to the ICR
-            if turn_direction > 0:  # Left turn - left wheel is inner
-                # Inner wheel radius is smaller, outer wheel radius is larger
+            # Robot's effective turning radius
+            if turn_direction > 0: 
+                # Left Turn , left wheel is inner wheel with smaller radius
                 inner_radius = min(left_wheel_radius, right_wheel_radius)
                 robot_center_radius = inner_radius + (self.track_width / 2.0)
-            else:  # Right turn - right wheel is inner  
-                # Inner wheel radius is smaller, outer wheel radius is larger
+            else: 
+                # Right Turn , right wheel is inner wheel with smaller radius
                 inner_radius = min(left_wheel_radius, right_wheel_radius)
                 robot_center_radius = inner_radius + (self.track_width / 2.0)
             
-            # Calculate equivalent bicycle model steering angle
+            # Calculating effective Robot Steering angle using Bicycle Kinematic Model
             # δ = atan(wheelbase / radius)
             if robot_center_radius > 0.001:
                 robot_steering_angle = math.atan(self.wheelbase / robot_center_radius)
@@ -224,15 +192,15 @@ class WheelOdometryNode(Node):
                 return 0.0
                 
         except (ZeroDivisionError, ValueError):
-            # Fallback: use average of both steering angles
+            # If Bicycle Kinematic Model fails , then going for average method
             self.get_logger().warn("Steering angle calculation failed, using average")
             return (left_steer_angle + right_steer_angle) / 2.0
 
     def publish_odometry(self):
         current_time = self.get_clock().now()
         
-        # Don't publish odometry until we're initialized
-        if not hasattr(self, 'initialized') or not self.initialized:
+        # Not publishing odometry until we have initialized the joint states
+        if not self.initialized:
             return
         
         # Calculate time since last odometry update
@@ -242,9 +210,9 @@ class WheelOdometryNode(Node):
             
         dt = (current_time - self.last_odom_time).nanoseconds / 1e9
         
-        # Only integrate if we have a reasonable time step
+        # Updating pose only if the time step is ideal
         if dt > 0.001 and dt < 0.1:  # Between 1ms and 100ms
-            # Average linear velocity of the robot's center
+            # Average linear velocity of the robot 
             linear_velocity = (self.current_wheel_vel['left'] + self.current_wheel_vel['right']) / 2.0
             
             # Angular velocity of the robot (bicycle model)
@@ -254,7 +222,7 @@ class WheelOdometryNode(Node):
             else:
                 angular_velocity = 0.0
 
-            # --- Integrate pose ---
+            # Integrating for Pose
             delta_x = linear_velocity * math.cos(self.theta) * dt
             delta_y = linear_velocity * math.sin(self.theta) * dt
             delta_theta = angular_velocity * dt
@@ -263,13 +231,13 @@ class WheelOdometryNode(Node):
             self.y += delta_y
             self.theta += delta_theta
             
-            # Normalize theta to [-pi, pi]
+            # Normalizing robot's yaw
             while self.theta > math.pi:
                 self.theta -= 2 * math.pi
             while self.theta < -math.pi:
                 self.theta += 2 * math.pi
         else:
-            # Use current velocities without integration if time step is bad
+            # Using current velocities if time step is not ideal, thus preventing pose from getting distorted
             linear_velocity = (self.current_wheel_vel['left'] + self.current_wheel_vel['right']) / 2.0
             if abs(self.wheelbase) > 0.001 and abs(self.current_steering_angle) > 0.001:
                 angular_velocity = linear_velocity * math.tan(self.current_steering_angle) / self.wheelbase
@@ -278,7 +246,6 @@ class WheelOdometryNode(Node):
         
         self.last_odom_time = current_time
 
-        # --- Create and publish Odometry message ---
         odom_msg = Odometry()
         odom_msg.header.stamp = current_time.to_msg()
         odom_msg.header.frame_id = self.odom_frame
@@ -294,15 +261,12 @@ class WheelOdometryNode(Node):
         odom_msg.pose.pose.orientation.z = q[2]
         odom_msg.pose.pose.orientation.w = q[3]
 
-        # Twist (velocities)
+        # Twist 
         odom_msg.twist.twist.linear.x = linear_velocity
         odom_msg.twist.twist.linear.y = 0.0
         odom_msg.twist.twist.angular.z = angular_velocity
         
-        # --- Set Covariance - Optimized for wheel odometry characteristics ---
-        # Lower values = more trust, higher values = less trust
-        
-        # Calculate dynamic covariance based on velocity (higher speed = higher uncertainty)
+        # Lower covariance values means more accurate and vice versa
         speed = abs(linear_velocity)
         angular_speed = abs(angular_velocity)
         
@@ -310,7 +274,7 @@ class WheelOdometryNode(Node):
         pos_var = 0.01 + 0.05 * speed + 0.1 * abs(self.current_steering_angle)
         # Orientation covariance increases with angular velocity and steering
         orient_var = 0.01 + 0.1 * angular_speed + 0.2 * abs(self.current_steering_angle)
-        # Velocity covariance is lower (wheel encoders are accurate for velocity)
+        # Velocity covariance is relatively lower because linear velocity is accurate from encoders
         vel_var = 0.02 + 0.05 * speed
         
         # Pose covariance: [x, y, z, roll, pitch, yaw]
@@ -323,7 +287,7 @@ class WheelOdometryNode(Node):
         
         # Twist covariance: [vx, vy, vz, roll_rate, pitch_rate, yaw_rate]                            
         odom_msg.twist.covariance = [vel_var, 0.0, 0.0, 0.0, 0.0, 0.0,         # vx (accurate)
-                                     0.0, 1e6, 0.0, 0.0, 0.0, 0.0,             # vy (not used - no lateral motion)
+                                     0.0, 1e6, 0.0, 0.0, 0.0, 0.0,             # vy (not used)
                                      0.0, 0.0, 1e6, 0.0, 0.0, 0.0,             # vz (not used)
                                      0.0, 0.0, 0.0, 1e6, 0.0, 0.0,             # roll_rate (not used)
                                      0.0, 0.0, 0.0, 0.0, 1e6, 0.0,             # pitch_rate (not used)
@@ -331,26 +295,26 @@ class WheelOdometryNode(Node):
 
         self.odom_pub.publish(odom_msg)
         
-        # Debug info (publish every 50 messages to avoid spam)
+        # Publishing every 50 messages to avoid spam
         if hasattr(self, 'debug_counter'):
             self.debug_counter += 1
         else:
             self.debug_counter = 0
             
-        # --- Debug Output (reduced frequency) ---
-        if self.debug_counter % 50 == 0:
+        # Debugging the input data at a a low frequency
+        if !(self.debug_counter % 50):
             self.get_logger().info(f'Raw Wheel Odom: x={self.x:.2f}, y={self.y:.2f}, θ={math.degrees(self.theta):.1f}°, v={linear_velocity:.2f}, ω={math.degrees(angular_velocity):.1f}°/s')
             
-        # --- TF Transform removed ---
-        # Robot_localization (EKF) will publish the authoritative odom→base_footprint transform
-        # This ensures single source of truth and proper time synchronization
-
 def main(args=None):
     rclpy.init(args=args)
     node = WheelOdometryNode()
-    rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
