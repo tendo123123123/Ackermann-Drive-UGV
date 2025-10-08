@@ -302,7 +302,7 @@ class WheelOdometryNode(Node):
             self.debug_counter = 0
             
         # Debugging the input data at a a low frequency
-        if !(self.debug_counter % 50):
+        if (not self.debug_counter % 50):
             self.get_logger().info(f'Raw Wheel Odom: x={self.x:.2f}, y={self.y:.2f}, θ={math.degrees(self.theta):.1f}°, v={linear_velocity:.2f}, ω={math.degrees(angular_velocity):.1f}°/s')
             
 def main(args=None):
