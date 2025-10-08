@@ -40,6 +40,7 @@ class WheelOdometryNode(Node):
 
         self.last_time = self.get_clock().now()
         self.last_wheel_pos = {'left': 0.0, 'right': 0.0}
+        self.last_wheel_vel = {'left': 0.0, 'right': 0.0}
         self.joint_names = []
 
         
