@@ -11,8 +11,8 @@
     </node>
     
     <include file="$(find-pkg-share ros_gz_sim)/launch/gz_sim.launch.py">
-        <!-- <arg name="gz_args" value="/home/aditya-pachauri/armybot_diff_drive/src/bot_description/worlds/test_new.world -r" /> -->
-        <arg name="gz_args" value="empty.sdf -r" />
+        <arg name="gz_args" value="$(find-pkg-share bot_description)/worlds/living_room.sdf -r" />
+        <!-- <arg name="gz_args" value="empty.sdf -r" /> -->
     </include>
     
     <node pkg="joint_state_publisher" exec="joint_state_publisher">
