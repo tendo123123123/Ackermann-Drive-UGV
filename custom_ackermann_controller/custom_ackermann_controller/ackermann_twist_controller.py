@@ -11,32 +11,32 @@ class AckermannTwistController(Node):
     def __init__(self):
         super().__init__('ackermann_twist_controller')
         
-        # UGV parameters 
+        # Robot parameters 
         self.wheelbase = 0.9  # Distance between front and rear axles
         self.track_width = 0.67  # Distance between left and right wheels
         self.wheel_radius = 0.175  # Wheel radius in meters
         self.max_steering_angle = 0.2616  # 15 degrees in radians (from URDF)
         
-        # Parameters for bicycle kinematic model
+        # Internal state variables for bicycle kinematic model
         self.current_steering_angle = 0.0  # Current actual steering angle
         self.target_steering_angle = 0.0   # Target steering angle from kinematics
-        self.steering_rate = 2.0  # Rate of steering change (rad/s)
+        self.steering_rate = 2.0  # Rate of steering change (rad/s) - increased for responsiveness
         
         # Timer for continuous steering updates
-        self.timer_period = 0.02  # 50 Hz update rate for smoother robot motion
+        self.timer_period = 0.02  # 50 Hz update rate for smoother kinematic control
         self.timer = self.create_timer(self.timer_period, self.update_steering)
         
-        # Current state of robot
+        # Current command velocities
         self.current_linear_vel = 0.0
         self.current_angular_vel = 0.0
         self.last_cmd_time = self.get_clock().now()
         
-        # Timeout parameters
+        # Timeout settings
         self.cmd_timeout = 2.0  # 2 seconds timeout to reset steering to center
-        self.steering_reset_rate = 0.5  # Rate of return (rad/s)
-        self.is_resetting_steering = False  # Flag to track if robot steering is resetting
+        self.steering_reset_rate = 0.5  # Rate to return steering to center (rad/s)
+        self.is_resetting_steering = False  # Flag to track if we're auto-resetting
         
-
+        # Publishers for wheel velocities and steering angles
         self.wheel_vel_pub = self.create_publisher(
             Float64MultiArray, 
             '/forward_velocity_controller/commands', 
@@ -49,6 +49,7 @@ class AckermannTwistController(Node):
             10
         )
         
+        # Subscriber to cmd_vel
         self.cmd_vel_sub = self.create_subscription(
             Twist,
             '/cmd_vel',
@@ -126,7 +127,7 @@ class AckermannTwistController(Node):
         
         # Checking for command timeout
         if time_diff > self.cmd_timeout:
-            # Timeout exceeded so stopping all the motions and bringing the robot to default state
+            # Timeout exceeded so stopping all the motiona and bringing the robot to default state
             self.current_linear_vel = 0.0
             self.current_angular_vel = 0.0
             self.target_steering_angle = 0.0
@@ -134,7 +135,7 @@ class AckermannTwistController(Node):
             
             # Returning steering to center position
             if abs(self.current_steering_angle) > 0.001:
-                # Calculating direction 
+                # Calculate direction to move toward center
                 if self.current_steering_angle > 0:
                     reset_direction = -1.0
                 else:
@@ -151,7 +152,7 @@ class AckermannTwistController(Node):
             else:
                 self.is_resetting_steering = False
         else:
-            # No timeout 
+            # No timeout - update steering to match kinematic target
             self.is_resetting_steering = False
             
             # Smoothly move current steering toward kinematic target
