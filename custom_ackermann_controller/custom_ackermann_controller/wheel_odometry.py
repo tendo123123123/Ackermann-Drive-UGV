@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import rclpy
 from rclpy.node import Node
+from rclpy.time import Time
 import math
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import JointState
@@ -66,6 +67,7 @@ class WheelOdometryNode(Node):
         self.get_logger().info('Wheel Odometry Node Started - waiting for joint states...')
 
     def joint_state_callback(self, msg: JointState):
+        # Use simulation time from the node's clock (respects use_sim_time parameter)
         current_time = self.get_clock().now()
         
         # Initializing on first callback
@@ -90,6 +92,7 @@ class WheelOdometryNode(Node):
                 self.last_wheel_pos['right'] = right_wheel_pos
                 self.last_time = current_time
                 self.initialized = True
+                self.get_logger().info("Wheel odometry initialized with simulation time!")
             except (ValueError, IndexError) as e:
                 self.get_logger().error(f"Failed to initialize: {e}")
                 return
@@ -198,11 +201,12 @@ class WheelOdometryNode(Node):
             return (left_steer_angle + right_steer_angle) / 2.0
 
     def publish_odometry(self):
-        current_time = self.get_clock().now()
-        
         # Not publishing odometry until we have initialized the joint states
         if not self.initialized:
             return
+            
+        # Use simulation time from the node's clock
+        current_time = self.get_clock().now()
         
         # Calculate time since last odometry update
         if not hasattr(self, 'last_odom_time'):
@@ -223,9 +227,10 @@ class WheelOdometryNode(Node):
             else:
                 angular_velocity = 0.0
 
-            # Integrating for Pose
-            delta_x = linear_velocity * math.cos(self.theta) * dt
-            delta_y = linear_velocity * math.sin(self.theta) * dt
+            # Integrating for Pose (Y-axis forward robot)
+            # For Y-forward robot: forward motion increases Y, turning changes X
+            delta_x = -linear_velocity * math.sin(self.theta) * dt
+            delta_y = linear_velocity * math.cos(self.theta) * dt
             delta_theta = angular_velocity * dt
 
             self.x += delta_x
@@ -262,9 +267,9 @@ class WheelOdometryNode(Node):
         odom_msg.pose.pose.orientation.z = q[2]
         odom_msg.pose.pose.orientation.w = q[3]
 
-        # Twist 
-        odom_msg.twist.twist.linear.x = linear_velocity
-        odom_msg.twist.twist.linear.y = 0.0
+        # Twist (for Y-axis forward robot, publish linear velocity in robot's forward direction)
+        odom_msg.twist.twist.linear.x = 0.0  # No sideways motion
+        odom_msg.twist.twist.linear.y = linear_velocity  # Forward velocity in Y-axis
         odom_msg.twist.twist.angular.z = angular_velocity
         
         # Lower covariance values means more accurate and vice versa
@@ -286,9 +291,9 @@ class WheelOdometryNode(Node):
                                     0.0, 0.0, 0.0, 0.0, 1e6, 0.0,              # pitch (not used)
                                     0.0, 0.0, 0.0, 0.0, 0.0, orient_var]       # yaw
         
-        # Twist covariance: [vx, vy, vz, roll_rate, pitch_rate, yaw_rate]                            
-        odom_msg.twist.covariance = [vel_var, 0.0, 0.0, 0.0, 0.0, 0.0,         # vx (accurate)
-                                     0.0, 1e6, 0.0, 0.0, 0.0, 0.0,             # vy (not used)
+        # Twist covariance: [vx, vy, vz, roll_rate, pitch_rate, yaw_rate] (Y-axis forward)                            
+        odom_msg.twist.covariance = [1e6, 0.0, 0.0, 0.0, 0.0, 0.0,            # vx (not used - no lateral motion)
+                                     0.0, vel_var, 0.0, 0.0, 0.0, 0.0,         # vy (accurate - forward motion)
                                      0.0, 0.0, 1e6, 0.0, 0.0, 0.0,             # vz (not used)
                                      0.0, 0.0, 0.0, 1e6, 0.0, 0.0,             # roll_rate (not used)
                                      0.0, 0.0, 0.0, 0.0, 1e6, 0.0,             # pitch_rate (not used)
@@ -308,14 +313,10 @@ class WheelOdometryNode(Node):
             
 def main(args=None):
     rclpy.init(args=args)
-    node = WheelOdometryNode()
-    try:
-        rclpy.spin(node)
-    except KeyboardInterrupt:
-        pass
-    finally:
-        node.destroy_node()
-        rclpy.shutdown()
+    node = WheelOdometryNode() 
+    rclpy.spin(node)
+    node.destroy_node()
+    rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
