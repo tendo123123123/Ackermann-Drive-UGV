@@ -31,7 +31,7 @@
         </node>
 
         <!-- Wheel Odometry Node -->
-        <node pkg="custom_ackermann_controller" exec="wheel_odometry" 
+        <!-- <node pkg="custom_ackermann_controller" exec="wheel_odometry" 
             name="wheel_odometry_node" output="screen">
             <param name="use_sim_time" value="$(var use_sim_time)" />
             <param name="wheelbase" value="0.9" />
@@ -44,13 +44,8 @@
             <param name="left_steering_joint" value="base_front_left_steering_joint" />
             <param name="right_steering_joint" value="base_front_right_steering_joint" />
             <param name="publish_rate" value="50.0" />
-        </node>
+        </node> -->
 
-        <node pkg="tf2_ros" exec="static_transform_publisher" 
-            name="map_odom_publisher" 
-            args="0 0 0 0 0 0 map odom">
-            <param name="use_sim_time" value="$(var use_sim_time)" />
-        </node>
     </group>
 
     

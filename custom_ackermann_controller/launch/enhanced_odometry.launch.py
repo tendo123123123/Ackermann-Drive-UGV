@@ -35,6 +35,12 @@ def generate_launch_description():
     ekf_config_file = os.path.join(pkg_custom_ackermann, 'config', 'robot_localization.yaml')
     
     # Launch arguments
+    use_sim_time_arg = DeclareLaunchArgument(
+        'use_sim_time',
+        default_value='true',
+        description='Use simulation time for all nodes'
+    )
+    
     use_laser_odom_arg = DeclareLaunchArgument(
         'use_laser_odom',
         default_value='true',
@@ -74,6 +80,7 @@ def generate_launch_description():
         parameters=[laser_matcher_config_file, {
             'subscribe_scan_topic': LaunchConfiguration('laser_topic'),
             'publish_odom_topic': LaunchConfiguration('odom_laser_topic'),
+            'use_sim_time': LaunchConfiguration('use_sim_time')  # CRITICAL: Use simulation time
         }],
         condition=IfCondition(LaunchConfiguration('use_laser_odom')),
         respawn=True,
@@ -87,7 +94,8 @@ def generate_launch_description():
         name='ekf_filter_node',
         output='screen',
         parameters=[ekf_config_file, {
-            'print_diagnostics': LaunchConfiguration('debug')
+            'print_diagnostics': LaunchConfiguration('debug'),
+            'use_sim_time': LaunchConfiguration('use_sim_time')  # CRITICAL: Use simulation time
         }],
         condition=IfCondition(LaunchConfiguration('use_ekf')),
         respawn=True,
@@ -99,6 +107,7 @@ def generate_launch_description():
     
     return LaunchDescription([
         # Launch arguments
+        use_sim_time_arg,              # CRITICAL: Add use_sim_time argument
         use_laser_odom_arg,
         use_ekf_arg, 
         laser_topic_arg,

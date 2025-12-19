@@ -13,12 +13,17 @@ setup(
         ('share/' + package_name + '/config', [
             'config/robot_localization.yaml',
             'config/laser_scan_matcher.yaml',
-            'config/smooth_velocity_controller.yaml'
+            'config/enhanced_wheel_odometry.yaml',
+            'config/enhanced_imu_processor.yaml',
+            'config/enhanced_ekf.yaml',
+            'config/adaptive_scan_matcher.yaml'
         ]),
         ('share/' + package_name + '/launch', [
             'launch/joystick_teleop.launch.py',
             'launch/enhanced_odometry.launch.py',
-            'launch/smooth_teleop.launch.py'
+            'launch/enhanced_wheel_odometry.launch.py',
+            'launch/enhanced_localization.launch.py',
+            'launch/adaptive_scan_matcher.launch.py'
         ]),
     ],
     install_requires=['setuptools'],
@@ -33,7 +38,11 @@ setup(
             'ackermann_twist_controller = custom_ackermann_controller.ackermann_twist_controller:main',
             'wheel_odometry = custom_ackermann_controller.wheel_odometry:main',
             'laser_scan_matcher = custom_ackermann_controller.laser_scan_matcher:main',
-            'smooth_velocity_controller = custom_ackermann_controller.smooth_velocity_controller:main',
+            'enhanced_wheel_odometry = custom_ackermann_controller.enhanced_wheel_odometry:main',
+            'adaptive_scan_matcher = custom_ackermann_controller.adaptive_scan_matcher:main',
+            'enhanced_imu_processor = custom_ackermann_controller.enhanced_imu_processor:main',
+            'sensor_authority_manager = custom_ackermann_controller.sensor_authority_manager:main',
+            'localization_diagnostics = custom_ackermann_controller.localization_diagnostics:main',
         ],
     },
 )

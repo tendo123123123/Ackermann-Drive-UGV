@@ -28,7 +28,7 @@ from nav2_common.launch import RewrittenYaml
 
 def generate_launch_description():
     # Get the launch directory
-    bringup_dir = get_package_share_directory('turtlebot_navigation')
+    bringup_dir = get_package_share_directory('bot_navigation')
     namespace = LaunchConfiguration('namespace')
     use_sim_time = LaunchConfiguration('use_sim_time')
     autostart = LaunchConfiguration('autostart')
@@ -38,6 +38,7 @@ def generate_launch_description():
     container_name_full = (namespace, '/', container_name)
     use_respawn = LaunchConfiguration('use_respawn')
     log_level = LaunchConfiguration('log_level')
+    use_static_map_transform = LaunchConfiguration('use_static_map_transform')
 
     lifecycle_nodes = ['amcl',
                        'map_server',
@@ -76,7 +77,7 @@ def generate_launch_description():
     
     declare_map_yaml_cmd = DeclareLaunchArgument(
         'map',
-        default_value='/home/aditya-pachauri/maps/turtle.yaml',
+        default_value=os.path.join(bringup_dir, 'maps', 'my_map.yaml'),
         description='Full path to map yaml file to load')
 
     declare_namespace_cmd = DeclareLaunchArgument(
@@ -114,6 +115,10 @@ def generate_launch_description():
         'log_level', default_value='info',
         description='log level')
 
+    declare_use_static_map_transform_cmd = DeclareLaunchArgument(
+        'use_static_map_transform', default_value='true',
+        description='Use static map->odom transform until AMCL initializes')
+
     load_nodes = GroupAction(
         condition=IfCondition(PythonExpression(['not ', use_composition])),
         actions=[
@@ -122,7 +127,7 @@ def generate_launch_description():
             executable='amcl',
             name='amcl',
             output='screen',
-            remappings=[('/odom', '/bot_controller/odom')],
+            remappings=[('/odom', '/odometry/filtered')],
             parameters=[{
                 'use_sim_time': use_sim_time,
                 
@@ -192,7 +197,7 @@ def generate_launch_description():
                 respawn_delay=2.0,
                 parameters=[configured_params],
                 arguments=['--ros-args', '--log-level', log_level],
-                remappings=remappings + [('cmd_vel', 'cmd_vel_nav'),('/odom','/bot_controller/odom')]),
+                remappings=remappings + [('cmd_vel', 'cmd_vel_nav'),('/odom','/odometry/filtered')]),
             Node(
                 package='nav2_map_server',
                 executable='map_server',
@@ -264,6 +269,16 @@ def generate_launch_description():
                 arguments=['--ros-args', '--log-level', log_level],
                 remappings=remappings +
                         [('cmd_vel', 'cmd_vel_nav'), ('cmd_vel_smoothed', 'cmd_vel')]),
+            Node(
+                package='tf2_ros',
+                executable='static_transform_publisher',
+                name='map_to_odom_publisher',
+                output='screen',
+                parameters=[{'use_sim_time': use_sim_time}],
+                arguments=['0', '0', '0', '0', '0', '0', 'map', 'odom'],
+                condition=IfCondition(use_static_map_transform),
+                # This provides a temporary map->odom transform until AMCL takes over
+            ),
             Node(
                 package='nav2_lifecycle_manager',
                 executable='lifecycle_manager',
@@ -349,6 +364,7 @@ def generate_launch_description():
     ld.add_action(declare_use_respawn_cmd)
     ld.add_action(declare_log_level_cmd)
     ld.add_action(declare_map_yaml_cmd)
+    ld.add_action(declare_use_static_map_transform_cmd)
     # Add the actions to launch all of the navigation nodes
     ld.add_action(load_nodes)
     ld.add_action(load_composable_nodes)
