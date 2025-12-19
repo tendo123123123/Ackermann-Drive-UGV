@@ -109,13 +109,13 @@ def generate_launch_description():
             ),
             
             # Map to odom static transform
-            Node(
-                package='tf2_ros',
-                executable='static_transform_publisher',
-                name='map_odom_publisher',
-                arguments=['0', '0', '0', '0', '0', '0', 'map', 'odom'],
-                parameters=[{'use_sim_time': use_sim_time}]
-            )
+            # Node(
+            #     package='tf2_ros',
+            #     executable='static_transform_publisher',
+            #     name='map_odom_publisher',
+            #     arguments=['0', '0', '0', '0', '0', '0', 'map', 'odom'],
+            #     parameters=[{'use_sim_time': use_sim_time}]
+            # )
         ]
     )
     

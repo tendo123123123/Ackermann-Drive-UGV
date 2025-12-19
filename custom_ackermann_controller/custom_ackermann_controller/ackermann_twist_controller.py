@@ -60,8 +60,11 @@ class AckermannTwistController(Node):
         self.get_logger().info('Ackermann Twist Controller started with enhanced steering control')
         
     def cmd_vel_callback(self, msg):
-        linear_vel = msg.linear.x  # Forward velocity (m/s)
-        angular_vel = msg.angular.z  # Angular velocity (rad/s)
+        # NOTE: Robot is oriented with front pointing in +Y direction
+        # We now have a proper coordinate transform in URDF (base_link_corrected)
+        # that aligns robot's +Y with ROS convention +X, so no sign change needed
+        linear_vel = msg.linear.x  # Forward velocity from standard cmd_vel
+        angular_vel = -msg.angular.z  # Angular velocity (rad/s)
         
         # Appling Bicycle Kinematic Model for Twist to Ackermann Conversion
         steering_angle = self.twist_to_ackermann_kinematics(linear_vel, angular_vel)
@@ -81,8 +84,8 @@ class AckermannTwistController(Node):
             turning_radius = linear_vel / angular_vel
         else:   
             turning_radius = math.inf #Infinite for straight line motion
-        self.get_logger().debug(
-            f'v={linear_vel:.2f}, ω={angular_vel:.2f} -> R={turning_radius:.2f}, δ={math.degrees(steering_angle):.1f} degrees'
+        self.get_logger().info(
+            f'CMD: linear={msg.linear.x:.2f} -> corrected={linear_vel:.2f}, angular={angular_vel:.2f} -> steering={math.degrees(steering_angle):.1f}°'
         )
     
     def twist_to_ackermann_kinematics(self, linear_vel, angular_vel):
@@ -277,8 +280,13 @@ class AckermannTwistController(Node):
     
     def publish_wheel_velocities(self, left_vel, right_vel):
         velocity_msg = Float64MultiArray()
+        # Note: If robot still moves backward, uncomment the next line to reverse wheel directions
+        # left_vel, right_vel = -left_vel, -right_vel  # UNCOMMENT if needed
         velocity_msg.data = [left_vel, right_vel]
         self.wheel_vel_pub.publish(velocity_msg)
+        
+        # Debug log to help with troubleshooting
+        self.get_logger().debug(f'Publishing wheel velocities: left={left_vel:.2f}, right={right_vel:.2f}')
 
 
 def main(args=None):

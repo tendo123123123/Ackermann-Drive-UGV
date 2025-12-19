@@ -227,16 +227,16 @@ class WheelOdometryNode(Node):
             else:
                 angular_velocity = 0.0
 
-            # Integrating for Pose (Y-axis forward robot)
-            # For Y-forward robot: forward motion increases Y, turning changes X
-            delta_x = -linear_velocity * math.sin(self.theta) * dt
-            delta_y = linear_velocity * math.cos(self.theta) * dt
+            # Integrating for Pose (X-axis forward robot - ROS standard)
+            # For X-forward robot: forward motion increases X, turning changes Y
+            delta_x = linear_velocity * math.cos(self.theta) * dt
+            delta_y = linear_velocity * math.sin(self.theta) * dt
             delta_theta = angular_velocity * dt
 
             self.x += delta_x
             self.y += delta_y
             self.theta += delta_theta
-            
+
             # Normalizing robot's yaw
             while self.theta > math.pi:
                 self.theta -= 2 * math.pi
@@ -267,9 +267,9 @@ class WheelOdometryNode(Node):
         odom_msg.pose.pose.orientation.z = q[2]
         odom_msg.pose.pose.orientation.w = q[3]
 
-        # Twist (for Y-axis forward robot, publish linear velocity in robot's forward direction)
-        odom_msg.twist.twist.linear.x = 0.0  # No sideways motion
-        odom_msg.twist.twist.linear.y = linear_velocity  # Forward velocity in Y-axis
+        # Twist (for X-axis forward robot - ROS standard)
+        odom_msg.twist.twist.linear.x = linear_velocity  # Forward velocity in X-axis
+        odom_msg.twist.twist.linear.y = 0.0  # No sideways motion
         odom_msg.twist.twist.angular.z = angular_velocity
         
         # Lower covariance values means more accurate and vice versa
@@ -291,9 +291,9 @@ class WheelOdometryNode(Node):
                                     0.0, 0.0, 0.0, 0.0, 1e6, 0.0,              # pitch (not used)
                                     0.0, 0.0, 0.0, 0.0, 0.0, orient_var]       # yaw
         
-        # Twist covariance: [vx, vy, vz, roll_rate, pitch_rate, yaw_rate] (Y-axis forward)                            
-        odom_msg.twist.covariance = [1e6, 0.0, 0.0, 0.0, 0.0, 0.0,            # vx (not used - no lateral motion)
-                                     0.0, vel_var, 0.0, 0.0, 0.0, 0.0,         # vy (accurate - forward motion)
+        # Twist covariance: [vx, vy, vz, roll_rate, pitch_rate, yaw_rate] (X-axis forward)                            
+        odom_msg.twist.covariance = [vel_var, 0.0, 0.0, 0.0, 0.0, 0.0,         # vx (accurate - forward motion)
+                                     0.0, 1e6, 0.0, 0.0, 0.0, 0.0,             # vy (not used - no lateral motion)
                                      0.0, 0.0, 1e6, 0.0, 0.0, 0.0,             # vz (not used)
                                      0.0, 0.0, 0.0, 1e6, 0.0, 0.0,             # roll_rate (not used)
                                      0.0, 0.0, 0.0, 0.0, 1e6, 0.0,             # pitch_rate (not used)

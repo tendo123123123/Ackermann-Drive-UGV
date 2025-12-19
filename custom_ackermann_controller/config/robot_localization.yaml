@@ -2,23 +2,24 @@ ekf_filter_node:
   ros__parameters:
     # Basic EKF settings - Optimized for real-time sensor fusion
     frequency: 50.0                    # Match wheel odometry publish rate (50 Hz)
-    sensor_timeout: 0.1                # 100ms timeout for sensor data
+    sensor_timeout: 0.2                # Increased to 200ms for better synchronization
     two_d_mode: true                   # 2D robot (no flying)
     
-    # Time synchronization settings
+    # Time synchronization settings - CRITICAL FOR TF
     predict_to_current_time: true      # Predict to current time for better sync
     smooth_lagged_data: true           # Smooth out-of-order sensor data
+    transform_time_offset: 0.0         # NO offset - use exact timestamps
     
     # Map frame settings  
     map_frame: map
     odom_frame: odom  
-    base_link_frame: base_footprint
-    world_frame: odom                  # Start with odom frame
+    base_link_frame: base_footprint       # Match URDF - should be base_link, not base_footprint
+    world_frame: odom                 # Start with odom frame
     
     # Transform settings - ENABLE TF PUBLISHING
-    publish_tf: true                   # Robot_localization will publish odom→base_footprint TF
-    transform_time_offset: 0.0
-    transform_timeout: 0.0
+    publish_tf: true                  # Robot_localization will publish odom→base_link TF
+    transform_time_offset: 0.0        # NO offset - let EKF handle timing
+    transform_timeout: 0.1            # 100ms timeout for transform lookup
     print_diagnostics: true            # Enable debug output
     debug: false
     
