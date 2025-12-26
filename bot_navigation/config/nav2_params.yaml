@@ -1,6 +1,6 @@
 amcl:
   ros__parameters:
-    use_sim_time: True
+    use_sim_time: true
     # Alpha parameters for Ackermann drive robot (motion noise)
     alpha1: 0.1      # Rotation noise from rotation 
     alpha2: 0.05     # Translation noise from rotation (Ackermann has better rotation tracking)
@@ -27,7 +27,7 @@ amcl:
     recovery_alpha_fast: 0.0
     recovery_alpha_slow: 0.0
     resample_interval: 1
-    robot_model_type: "nav2_amcl::OmniMotionModel"
+    robot_model_type: "nav2_amcl::DifferentialMotionModel"
     save_pose_rate: 0.5
     sigma_hit: 0.2
     tf_broadcast: true
@@ -52,16 +52,14 @@ amcl:
 
 bt_navigator:
   ros__parameters:
-    use_sim_time: True
+    use_sim_time: true
     global_frame: map 
     robot_base_frame: base_footprint
     odom_topic: /odometry/filtered
     bt_loop_duration: 10
     default_server_timeout: 20
-    # 'default_nav_through_poses_bt_xml' and 'default_nav_to_pose_bt_xml' are use defaults:
-    # nav2_bt_navigator/navigate_to_pose_w_replanning_and_recovery.xml
-    # nav2_bt_navigator/navigate_through_poses_w_replanning_and_recovery.xml
-    # They can be set here or via a RewrittenYaml remap from a parent launch file to Nav2.
+    default_nav_to_pose_bt_xml: "/home/aditya-pachauri/prototype_autonomous_bot_cir_ws/src/bot_navigation/behavior_trees/ackermann_to_bt.xml"
+    default_nav_through_poses_bt_xml: "/home/aditya-pachauri/prototype_autonomous_bot_cir_ws/src/bot_navigation/behavior_trees/ackermann_through_bt.xml"
     # plugin_lib_names:
     # - nav2_compute_path_to_pose_action_bt_node
     # - nav2_compute_path_through_poses_action_bt_node
@@ -113,96 +111,64 @@ bt_navigator:
 
 controller_server:
   ros__parameters:
-    use_sim_time: True
-    controller_frequency: 25.0       # Increased for more responsive control
-    min_x_velocity_threshold: 0.01   # Lower threshold for better stopping
-    min_y_velocity_threshold: 0.5
-    min_theta_velocity_threshold: 0.01
-    failure_tolerance: 0.5           # More tolerant to temporary failures
-    progress_checker_plugin: "progress_checker"
-    goal_checker_plugins: ["general_goal_checker"]
-    controller_plugins: ["FollowPath"]
-    progress_checker:
-      plugin: "nav2_controller::SimpleProgressChecker"
-      required_movement_radius: 0.4   # Reduced for smoother progress checking
-      movement_time_allowance: 15.0   # Increased allowance
-    general_goal_checker:
-      stateful: True
-      plugin: "nav2_controller::SimpleGoalChecker"
-      xy_goal_tolerance: 0.15         # Tighter tolerance for precision
-      yaw_goal_tolerance: 0.15        # More precise angular tolerance
     FollowPath:
-      plugin: "dwb_core::DWBLocalPlanner"
-      debug_trajectory_details: True
-      min_vel_x: -0.5                 # Allow backward motion for Ackermann
-      min_vel_y: 0.0
-      max_vel_x: 0.5                  # Conservative max velocity
-      max_vel_y: 0.0                  # No lateral motion for Ackermann
-      max_vel_theta: 0.8              # Reasonable angular velocity
-      min_speed_xy: 0.0
-      max_speed_xy: 0.5
-      min_speed_theta: 0.0
-      acc_lim_x: 1.2                  # Smoother acceleration
-      acc_lim_y: 0.0
-      acc_lim_theta: 1.5              # Gentler angular acceleration
-      decel_lim_x: -1.8               # Smoother deceleration
-      decel_lim_y: 0.0
-      decel_lim_theta: -2.0
-      vx_samples: 25                  # More samples including negative velocities
-      vy_samples: 1
-      vtheta_samples: 30              # More angular samples for precision
-      sim_time: 2.5                   # Longer simulation horizon
-      linear_granularity: 0.05        # Finer granularity for smoother paths
-      angular_granularity: 0.025      # Finer angular granularity
-      transform_tolerance: 0.3        # Increased tolerance
-      xy_goal_tolerance: 0.15
-      trans_stopped_velocity: 0.15
-      short_circuit_trajectory_evaluation: True
-      stateful: True
-      critics: ["RotateToGoal", "Oscillation", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist", "PreferForward"]
-      BaseObstacle:
-        scale: 0.04                   # Slightly reduced for smoother motion
-        sum_scores: false
-      PathAlign:
-        scale: 25.0                   # Maintain path alignment
-        forward_point_distance: 0.35  # Increased look-ahead
-      PathDist:
-        scale: 32.0
-      GoalAlign:
-        scale: 20.0                   # Reduced for smoother approach
-        forward_point_distance: 0.35
-      GoalDist:
-        scale: 20.0
-      RotateToGoal:
-        scale: 32.0
-        slowing_factor: 5.0
-        lookahead_time: -1.0
-      PreferForward:
-        scale: 1.0                    # Small preference for forward motion
-        penalty: 2.0                  # Penalty for backward motion
-
+      plugin: "nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController"
+      desired_linear_vel: 0.5
+      
+      # --- Lookahead Logic ---
+      # Logic: For a 1.4m robot, looking too close (0.6m) makes it twitchy. 
+      # Looking too far (3.0m) makes it cut corners.
+      lookahead_dist: 1.5          # Adjusted for your 0.9m wheelbase
+      min_lookahead_dist: 0.8       # Never look closer than ~1 wheelbase
+      max_lookahead_dist: 3.5
+      lookahead_time: 1.5           # Look 1.5s into the future
+      use_velocity_scaled_lookahead_dist: true
+      
+      # --- Reversing Logic ---
+      allow_reversing: true
+      # Logic: RPP scales speed based on curvature. 
+      # We must ensure it doesn't scale reverse speed to zero.
+      use_regulated_linear_velocity_scaling: true
+      regulated_linear_scaling_min_radius: 3.36   # Your R_min
+      regulated_linear_scaling_min_speed: 0.4     # Minimum "crawl" speed so it doesn't get stuck
+      
+      # --- Cost Awareness ---
+      # Logic: This slows the robot down as it gets closer to walls.
+      use_cost_regulated_linear_velocity_scaling: true
+      cost_scaling_dist: 0.6        # Start slowing down when 60cm from an obstacle
+      cost_scaling_gain: 1.0
+      inflation_cost_scaling_factor: 3.0
+      
+      # --- Ackermann Specifics ---
+      # Logic: If the path is too sharp, RPP will normally stop. 
+      # We want it to attempt the turn instead of timing out.
+      max_angular_accel: 1.5
+      transform_tolerance: 0.5
+      
 local_costmap:
   local_costmap:
     ros__parameters:
       update_frequency: 5.0
-      publish_frequency: 2.0
+      publish_frequency: 5.0
+      transform_tolerance: 1.0
       global_frame: odom
       robot_base_frame: base_footprint
-      use_sim_time: True
+      use_sim_time: true
       rolling_window: true
-      width: 6              # Increased for larger robot (1.4m x 0.8m)
-      height: 6             # Increased for larger robot
-      resolution: 0.05
-      robot_radius: 0.7             # Conservative radius based on robot dimensions (1.4m x 0.8m)
+      width: 10            # Increased for larger robot (1.4m x 0.8m)
+      height: 10           # Increased for larger robot
+      resolution: 0.1
+      # Remove robot_radius: 0.7
+      footprint: "[[-0.7, -0.4], [0.7, -0.4], [0.7, 0.4], [-0.7, 0.4]]"             # Conservative radius based on robot dimensions (1.4m x 0.8m)
       plugins: ["voxel_layer", "inflation_layer"]
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 3.0      # Steeper cost scaling for better path planning
-        inflation_radius: 1.0         # Increased for larger robot (1.4m x 0.8m)
+        inflation_radius: 0.5       # Increased for larger robot (1.4m x 0.8m)
       voxel_layer:
         plugin: "nav2_costmap_2d::VoxelLayer"
-        enabled: True
-        publish_voxel_map: True
+        enabled: true
+        publish_voxel_map: true
         origin_z: 0.0
         z_resolution: 0.05
         z_voxels: 16
@@ -212,8 +178,8 @@ local_costmap:
         scan:
           topic: /scan
           max_obstacle_height: 2.0
-          clearing: True
-          marking: True
+          clearing: true
+          marking: true
           data_type: "LaserScan"
           raytrace_max_range: 3.0
           raytrace_min_range: 0.0
@@ -221,8 +187,8 @@ local_costmap:
           obstacle_min_range: 0.0
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
-        map_subscribe_transient_local: True
-      always_send_full_costmap: True
+        map_subscribe_transient_local: true
+      always_send_full_costmap: true
 
 global_costmap:
   global_costmap:
@@ -231,20 +197,21 @@ global_costmap:
       publish_frequency: 1.0
       global_frame: map
       robot_base_frame: base_footprint
-      use_sim_time: True
-      robot_radius: 0.7             # Conservative radius based on robot dimensions (1.4m x 0.8m)
+      use_sim_time: true
+      # Remove robot_radius: 0.7
+      footprint: "[[-0.7, -0.4], [0.7, -0.4], [0.7, 0.4], [-0.7, 0.4]]"             # Conservative radius based on robot dimensions (1.4m x 0.8m)
       resolution: 0.05
       track_unknown_space: true
       plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
       obstacle_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer"
-        enabled: True
+        enabled: true
         observation_sources: scan
         scan:
           topic: /scan
           max_obstacle_height: 2.0
-          clearing: True
-          marking: True
+          clearing: true
+          marking: true
           data_type: "LaserScan"
           raytrace_max_range: 3.0
           raytrace_min_range: 0.0
@@ -252,47 +219,59 @@ global_costmap:
           obstacle_min_range: 0.0
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
-        map_subscribe_transient_local: True
+        map_subscribe_transient_local: true
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 3.0      # Steeper cost scaling for better path planning
-        inflation_radius: 1.0         # Increased for larger robot (1.4m x 0.8m)
-      always_send_full_costmap: True
+        inflation_radius: 0.5        # Increased for larger robot (1.4m x 0.8m)
+      always_send_full_costmap: true
 
 map_server:
   ros__parameters:
-    use_sim_time: True
+    use_sim_time: true
     # Map file will be provided by launch file parameter
     yaml_filename: ""
 
 map_saver:
   ros__parameters:
-    use_sim_time: True
+    use_sim_time: true
     save_map_timeout: 5.0
     free_thresh_default: 0.25
     occupied_thresh_default: 0.65
-    map_subscribe_transient_local: True
+    map_subscribe_transient_local: true
 
 planner_server:
   ros__parameters:
     expected_planner_frequency: 20.0
-    use_sim_time: True
-    planner_plugins: ["GridBased"]  # Simplified to single working planner
+    use_sim_time: true
+    planner_plugins: ["GridBased"]
+    publish_expansions: true
     GridBased:
-      plugin: "nav2_navfn_planner::NavfnPlanner"  # Correct plugin name format
-      tolerance: 0.3                 # More lenient tolerance for robustness
-      use_astar: false
+      plugin: "nav2_smac_planner::SmacPlannerHybrid"
+      motion_model_for_search: "REEDS_SHEPP"
+      tolerance: 0.5
+      minimum_turning_radius: 3.36
+      reverse_penalty: 1.0        # Lowered to make reverse paths more attractive
+      change_penalty: 0.8          # Reduced to allow more direction changes
+      bend_penalty: 2.0
+      non_straight_penalty: 1.0
+      cost_penalty: 2.0
       allow_unknown: true
+      analytic_expansion_ratio: 2.0   # Lowered to enable reversing more often
+      analytic_expansion_max_length: 20.0
+      angle_quantization_bins: 72
+      search_info:
+        primitive_search_max_duration_ms: 1500  # Give more time for searching
 
 smoother_server:
   ros__parameters:
-    use_sim_time: True
+    use_sim_time: true
     smoother_plugins: ["simple_smoother"]
     simple_smoother:
       plugin: "nav2_smoother::SimpleSmoother"
       tolerance: 1.0e-10
       max_its: 2000                   # Increased iterations for better smoothing
-      do_refinement: True
+      do_refinement: true
       refinement_num: 3               # Multiple refinement passes
 
 behavior_server:
@@ -300,14 +279,11 @@ behavior_server:
     costmap_topic: local_costmap/costmap_raw
     footprint_topic: local_costmap/published_footprint
     cycle_frequency: 10.0
-    behavior_plugins: ["spin", "backup", "drive_on_heading", "assisted_teleop", "wait"]
-    spin:
-      plugin: "nav2_behaviors::Spin"
-      simulate_ahead_time: 2.0        # Longer prediction for Ackermann
+    behavior_plugins: ["backup", "drive_on_heading", "wait"]
     backup:
       plugin: "nav2_behaviors::BackUp" 
       backup_speed: 0.15              # Slower backup for safety
-      backup_distance: 0.5            # Moderate backup distance
+      backup_distance: 0.7           # Moderate backup distance
       time_allowance: 10.0            # Longer time allowance
     drive_on_heading:
       plugin: "nav2_behaviors::DriveOnHeading"
@@ -315,8 +291,6 @@ behavior_server:
       max_angular_vel: 0.5            # Reduced for stability
     wait:
       plugin: "nav2_behaviors::Wait"
-    assisted_teleop:
-      plugin: "nav2_behaviors::AssistedTeleop"
     global_frame: odom
     robot_base_frame: base_footprint
     transform_tolerance: 0.2          # Increased tolerance for robustness
@@ -328,27 +302,27 @@ behavior_server:
 
 robot_state_publisher:
   ros__parameters:
-    use_sim_time: True
+    use_sim_time: true
 
 waypoint_follower:
   ros__parameters:
-    use_sim_time: True
+    use_sim_time: true
     loop_rate: 20
     stop_on_failure: false
     waypoint_task_executor_plugin: "wait_at_waypoint"
     wait_at_waypoint:
       plugin: "nav2_waypoint_follower::WaitAtWaypoint"
-      enabled: True
+      enabled: true
       waypoint_pause_duration: 200
 
 velocity_smoother:
   ros__parameters:
-    use_sim_time: True
+    use_sim_time: true
     smoothing_frequency: 30.0        # Increased frequency for smoother motion
-    scale_velocities: False
+    scale_velocities: false
     feedback: "OPEN_LOOP"
-    max_velocity: [0.5, 0.0, 0.8]    # Updated for Ackermann: [max_x, max_y, max_theta]
-    min_velocity: [-0.2, 0.0, -0.8]  # Allow reverse motion
+    max_velocity: [0.8, 0.0, 0.8]    # Updated for Ackermann: [max_x, max_y, max_theta]
+    min_velocity: [-0.8, 0.0, -0.8]  # Allow reverse motion
     max_accel: [1.2, 0.0, 1.8]       # Slightly reduced for smoother acceleration  
     max_decel: [-1.8, 0.0, -2.2]     # More gradual deceleration for comfort
     odom_topic: "/odometry/filtered"  # Use enhanced localization

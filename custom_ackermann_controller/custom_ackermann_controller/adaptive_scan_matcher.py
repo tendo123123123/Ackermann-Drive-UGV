@@ -32,20 +32,20 @@ class AdaptiveScanMatcherNode(Node):
         self.declare_parameter('fallback_to_wheel_odom', True)
         
         # Get parameters
-        self.base_frame = self.get_parameter('base_frame').value
-        self.odom_frame = self.get_parameter('odom_frame').value
-        self.scan_topic = self.get_parameter('scan_topic').value
-        self.max_iterations = self.get_parameter('max_iterations').value
+        self.base_frame = self.get_parameter('base_frame').get_parameter_value().string_value
+        self.odom_frame = self.get_parameter('odom_frame').get_parameter_value().string_value
+        self.scan_topic = self.get_parameter('scan_topic').get_parameter_value().string_value
+        self.max_iterations = self.get_parameter('max_iterations').get_parameter_value().integer_value
         self.epsilon_xy = self.get_parameter('epsilon_xy').value
         self.epsilon_theta = self.get_parameter('epsilon_theta').value
         self.max_correspondence_distance = self.get_parameter('max_correspondence_distance').value
         self.outlier_threshold = self.get_parameter('outlier_threshold').value
         self.min_laser_range = self.get_parameter('min_laser_range').value
         self.max_laser_range = self.get_parameter('max_laser_range').value
-        self.downsample_factor = self.get_parameter('downsample_factor').value
-        self.min_feature_threshold = self.get_parameter('min_feature_threshold').value
-        self.quality_threshold = self.get_parameter('quality_threshold').value
-        self.fallback_to_wheel_odom = self.get_parameter('fallback_to_wheel_odom').value
+        self.downsample_factor = self.get_parameter('downsample_factor').get_parameter_value().integer_value
+        self.min_feature_threshold = self.get_parameter('min_feature_threshold').get_parameter_value().integer_value
+        self.quality_threshold = self.get_parameter('quality_threshold').get_parameter_value().double_value
+        self.fallback_to_wheel_odom = self.get_parameter('fallback_to_wheel_odom').get_parameter_value().bool_value
         
         # State variables
         self.last_scan = None
@@ -291,7 +291,7 @@ class AdaptiveScanMatcherNode(Node):
         self.quality_pub.publish(quality_msg)
         
         # Determine matching confidence based on quality
-        if quality < self.quality_threshold or feature_count < self.min_feature_threshold:
+        if quality < (self.quality_threshold or 0.3) or feature_count < (self.min_feature_threshold or 10):
             self.matching_confidence = 0.1  # Low confidence
             if self.fallback_to_wheel_odom:
                 self.get_logger().debug('Low scan quality, reducing scan matching confidence')

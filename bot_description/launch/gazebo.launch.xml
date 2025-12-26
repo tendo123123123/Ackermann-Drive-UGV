@@ -1,7 +1,7 @@
 <launch>
     <let name="urdf_path" value="$(find-pkg-share bot_description)/urdf/bot.urdf.xacro" />
 
-    <let name="config_path" value="$(find-pkg-share bot_description)/config/gz.rviz" />
+    <let name="config_path" value="$(find-pkg-share bot_description)/config/main.rviz" />
     
     <let name="gazebo_config_path" value="$(find-pkg-share bot_description)/config/gazebo_bridge.yaml" />
     
@@ -11,7 +11,7 @@
     </node>
     
     <include file="$(find-pkg-share ros_gz_sim)/launch/gz_sim.launch.py">
-        <arg name="gz_args" value="$(find-pkg-share bot_description)/worlds/living_room.sdf -r" />
+        <arg name="gz_args" value="$(find-pkg-share bot_description)/worlds/living_room_new.sdf -r" />
         <!-- <arg name="gz_args" value="empty.sdf -r" /> -->
     </include>
     

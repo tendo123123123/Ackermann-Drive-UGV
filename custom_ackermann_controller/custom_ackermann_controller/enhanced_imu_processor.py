@@ -38,32 +38,32 @@ class EnhancedIMUProcessorNode(Node):
         self.declare_parameter('accel_random_walk', 0.01)   # m/s^3/sqrt(Hz)
         
         # Get parameters
-        self.imu_topic = self.get_parameter('imu_topic').value
-        self.temperature_topic = self.get_parameter('temperature_topic').value
-        self.base_frame = self.get_parameter('base_frame').value
-        self.imu_frame = self.get_parameter('imu_frame').value
+        self.imu_topic = self.get_parameter('imu_topic').get_parameter_value().string_value
+        self.temperature_topic = self.get_parameter('temperature_topic').get_parameter_value().string_value
+        self.base_frame = self.get_parameter('base_frame').get_parameter_value().string_value
+        self.imu_frame = self.get_parameter('imu_frame').get_parameter_value().string_value
         
-        self.bias_estimation_samples = self.get_parameter('bias_estimation_samples').value
-        self.bias_update_rate = self.get_parameter('bias_update_rate').value
-        self.temperature_compensation = self.get_parameter('temperature_compensation').value
+        self.bias_estimation_samples = self.get_parameter('bias_estimation_samples').get_parameter_value().integer_value
+        self.bias_update_rate = self.get_parameter('bias_update_rate').get_parameter_value().double_value
+        self.temperature_compensation = self.get_parameter('temperature_compensation').get_parameter_value().bool_value
         
         # Static biases
         self.static_bias_gyro = np.array([
-            self.get_parameter('static_bias_gyro_x').value,
-            self.get_parameter('static_bias_gyro_y').value,
-            self.get_parameter('static_bias_gyro_z').value
+            self.get_parameter('static_bias_gyro_x').get_parameter_value().double_value,
+            self.get_parameter('static_bias_gyro_y').get_parameter_value().double_value,
+            self.get_parameter('static_bias_gyro_z').get_parameter_value().double_value
         ])
         self.static_bias_accel = np.array([
-            self.get_parameter('static_bias_accel_x').value,
-            self.get_parameter('static_bias_accel_y').value,
-            self.get_parameter('static_bias_accel_z').value
+            self.get_parameter('static_bias_accel_x').get_parameter_value().double_value,
+            self.get_parameter('static_bias_accel_y').get_parameter_value().double_value,
+            self.get_parameter('static_bias_accel_z').get_parameter_value().double_value
         ])
         
         # Noise parameters
-        self.gyro_noise_density = self.get_parameter('gyro_noise_density').value
-        self.gyro_random_walk = self.get_parameter('gyro_random_walk').value
-        self.accel_noise_density = self.get_parameter('accel_noise_density').value
-        self.accel_random_walk = self.get_parameter('accel_random_walk').value
+        self.gyro_noise_density = self.get_parameter('gyro_noise_density').get_parameter_value().double_value
+        self.gyro_random_walk = self.get_parameter('gyro_random_walk').get_parameter_value().double_value
+        self.accel_noise_density = self.get_parameter('accel_noise_density').get_parameter_value().double_value
+        self.accel_random_walk = self.get_parameter('accel_random_walk').get_parameter_value().double_value
         
         # State variables
         self.bias_gyro = self.static_bias_gyro.copy()
@@ -183,7 +183,7 @@ class EnhancedIMUProcessorNode(Node):
             if not self.is_stationary:
                 self.stationary_start_time = current_time
                 self.is_stationary = True
-            elif (current_time - self.stationary_start_time) > self.stationary_duration_threshold:
+            elif self.stationary_start_time is not None and (current_time - self.stationary_start_time) > self.stationary_duration_threshold:
                 # Collect samples for bias estimation
                 self.gyro_samples.append(gyro_raw.copy())
                 self.accel_samples.append(accel_raw.copy())

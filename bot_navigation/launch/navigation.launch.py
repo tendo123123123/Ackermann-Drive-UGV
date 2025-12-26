@@ -62,7 +62,19 @@ def generate_launch_description():
     # Create our own temporary YAML files that include substitutions
     param_substitutions = {
         'use_sim_time': use_sim_time,
-        'autostart': autostart}
+        'autostart': autostart,
+        'amcl/use_sim_time': use_sim_time,
+        'bt_navigator/use_sim_time': use_sim_time,
+        'controller_server/use_sim_time': use_sim_time,
+        'local_costmap/local_costmap/use_sim_time': use_sim_time,
+        'global_costmap/global_costmap/use_sim_time': use_sim_time,
+        'map_server/use_sim_time': use_sim_time,
+        'planner_server/use_sim_time': use_sim_time,
+        'smoother_server/use_sim_time': use_sim_time,
+        'behavior_server/use_sim_time': use_sim_time,
+        'robot_state_publisher/use_sim_time': use_sim_time,
+        'waypoint_follower/use_sim_time': use_sim_time,
+        'velocity_smoother/use_sim_time': use_sim_time}
 
     configured_params = ParameterFile(
         RewrittenYaml(
@@ -87,8 +99,8 @@ def generate_launch_description():
 
     declare_use_sim_time_cmd = DeclareLaunchArgument(
         'use_sim_time',
-        default_value='true',
-        description='Use simulation (Gazebo) clock if true')
+        default_value='True',
+        description='Use simulation (Gazebo) clock if True')
 
     declare_params_file_cmd = DeclareLaunchArgument(
         'params_file',
@@ -96,7 +108,7 @@ def generate_launch_description():
         description='Full path to the ROS2 parameters file to use for all launched nodes')
 
     declare_autostart_cmd = DeclareLaunchArgument(
-        'autostart', default_value='true',
+        'autostart', default_value='True',
         description='Automatically startup the nav2 stack')
 
     declare_use_composition_cmd = DeclareLaunchArgument(
@@ -116,7 +128,7 @@ def generate_launch_description():
         description='log level')
 
     declare_use_static_map_transform_cmd = DeclareLaunchArgument(
-        'use_static_map_transform', default_value='true',
+        'use_static_map_transform', default_value='True',
         description='Use static map->odom transform until AMCL initializes')
 
     load_nodes = GroupAction(

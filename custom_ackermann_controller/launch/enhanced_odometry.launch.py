@@ -31,7 +31,7 @@ def generate_launch_description():
     pkg_custom_ackermann = get_package_share_directory('custom_ackermann_controller')
     
     # Configuration files
-    laser_matcher_config_file = os.path.join(pkg_custom_ackermann, 'config', 'laser_scan_matcher.yaml')
+    laser_matcher_config_file = os.path.join(pkg_custom_ackermann, 'config', 'adaptive_scan_matcher.yaml')
     ekf_config_file = os.path.join(pkg_custom_ackermann, 'config', 'robot_localization.yaml')
     
     # Launch arguments

@@ -47,17 +47,8 @@ def generate_launch_description():
         description='Enable enhanced IMU processing'
     )
     
-    enable_authority_manager_arg = DeclareLaunchArgument(
-        'enable_authority_manager',
-        default_value='true',
-        description='Enable sensor authority management'
-    )
     
-    enable_diagnostics_arg = DeclareLaunchArgument(
-        'enable_diagnostics',
-        default_value='true',
-        description='Enable diagnostic monitoring'
-    )
+    
     
     scan_topic_arg = DeclareLaunchArgument(
         'scan_topic',
@@ -153,34 +144,13 @@ def generate_launch_description():
         ]
     )
     
-    # Sensor authority manager node (conditional)
-    sensor_authority_manager_node = Node(
-        package='custom_ackermann_controller',
-        executable='sensor_authority_manager',
-        name='sensor_authority_manager',
-        parameters=[
-            {
-                'use_sim_time': LaunchConfiguration('use_sim_time'),
-                'update_rate': 10.0,
-                'enable_dynamic_weighting': True,
-                'min_confidence_threshold': 0.1,
-                'max_confidence_threshold': 1.0,
-                'wheel_odom_weight': 0.4,
-                'scan_match_weight': 0.4,
-                'imu_weight': 0.2,
-            }
-        ],
-        output='screen',
-        condition=launch.conditions.IfCondition(LaunchConfiguration('enable_authority_manager'))
-    )
+    
     
     return LaunchDescription([
         # Launch arguments
         use_sim_time_arg,
         enable_scan_matching_arg,
         enable_imu_processing_arg,
-        enable_authority_manager_arg,
-        enable_diagnostics_arg,
         scan_topic_arg,
         imu_topic_arg,
         base_frame_arg,
@@ -190,9 +160,6 @@ def generate_launch_description():
         adaptive_scan_matcher_node,
         enhanced_imu_processor_node,
         robot_localization_node,
-        
-        # System management nodes
-        sensor_authority_manager_node,
     ])
 
 # Additional launch file for testing individual components
