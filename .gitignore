@@ -49,3 +49,17 @@ qtcreator-*
 
 # Catkin custom files
 CATKIN_IGNORE
+# Ignore the workspace parents if you ever move Git higher up
+build/
+install/
+log/
+
+# Ignore Python/C++ artifacts
+__pycache__/
+*.pyc
+*.o
+*.so
+
+# Ignore local IDE settings
+.vscode/
+.idea/
