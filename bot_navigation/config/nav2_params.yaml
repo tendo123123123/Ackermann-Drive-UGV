@@ -18,9 +18,9 @@ amcl:
     laser_max_range: 100.0
     laser_min_range: -1.0
     laser_model_type: "likelihood_field"
-    max_beams: 60
-    max_particles: 2000
-    min_particles: 500
+    max_beams: 180
+    max_particles: 5000
+    min_particles: 1000
     odom_frame_id: "odom"
     pf_err: 0.05
     pf_z: 0.99
@@ -148,8 +148,8 @@ controller_server:
 local_costmap:
   local_costmap:
     ros__parameters:
-      update_frequency: 5.0
-      publish_frequency: 5.0
+      update_frequency: 10.0
+      publish_frequency: 10.0
       transform_tolerance: 1.0
       global_frame: odom
       robot_base_frame: base_footprint
@@ -193,8 +193,9 @@ local_costmap:
 global_costmap:
   global_costmap:
     ros__parameters:
-      update_frequency: 1.0
-      publish_frequency: 1.0
+      update_frequency: 2.0
+      publish_frequency: 2.0
+      transform_tolerance: 1.5      # Tolerate old transforms at startup to prevent TF extrapolation errors
       global_frame: map
       robot_base_frame: base_footprint
       use_sim_time: true
@@ -222,8 +223,8 @@ global_costmap:
         map_subscribe_transient_local: true
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
-        cost_scaling_factor: 3.0      # Steeper cost scaling for better path planning
-        inflation_radius: 0.9        # Increased for larger robot (1.4m x 0.8m)
+        cost_scaling_factor: 2.0      # Gentler scaling so wall inflation doesn't bleed into robot footprint
+        inflation_radius: 0.35       # Small buffer beyond footprint; 0.9 caused "Start occupied" near walls
       always_send_full_costmap: true
 
 map_server:
@@ -249,7 +250,7 @@ planner_server:
     GridBased:
       plugin: "nav2_smac_planner::SmacPlannerHybrid"
       motion_model_for_search: "REEDS_SHEPP"
-      tolerance: 0.5
+      tolerance: 0.3
       minimum_turning_radius: 3.36
       reverse_penalty: 1.0        # Lowered to make reverse paths more attractive
       change_penalty: 0.8          # Reduced to allow more direction changes
@@ -257,11 +258,11 @@ planner_server:
       non_straight_penalty: 1.0
       cost_penalty: 2.0
       allow_unknown: true
-      analytic_expansion_ratio: 2.0   # Lowered to enable reversing more often
+      analytic_expansion_ratio: 3.5
       analytic_expansion_max_length: 20.0
       angle_quantization_bins: 72
       search_info:
-        primitive_search_max_duration_ms: 1500  # Give more time for searching
+        primitive_search_max_duration_ms: 5000  # Max search time for best paths
 
 smoother_server:
   ros__parameters:
@@ -270,9 +271,9 @@ smoother_server:
     simple_smoother:
       plugin: "nav2_smoother::SimpleSmoother"
       tolerance: 1.0e-10
-      max_its: 2000                   # Increased iterations for better smoothing
+      max_its: 10000                  # Maximum iterations for best smoothing
       do_refinement: true
-      refinement_num: 3               # Multiple refinement passes
+      refinement_num: 10              # Maximum refinement passes
 
 behavior_server:
   ros__parameters:
@@ -318,7 +319,7 @@ waypoint_follower:
 velocity_smoother:
   ros__parameters:
     use_sim_time: true
-    smoothing_frequency: 30.0        # Increased frequency for smoother motion
+    smoothing_frequency: 50.0        # Maximum frequency for smoothest motion
     scale_velocities: false
     feedback: "OPEN_LOOP"
     max_velocity: [0.8, 0.0, 0.8]    # Updated for Ackermann: [max_x, max_y, max_theta]
