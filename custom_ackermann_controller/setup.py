@@ -11,7 +11,6 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         ('share/' + package_name + '/config', [
-            'config/robot_localization.yaml',
             'config/enhanced_wheel_odometry.yaml',
             'config/enhanced_imu_processor.yaml',
             'config/enhanced_ekf.yaml',
