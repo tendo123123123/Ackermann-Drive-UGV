@@ -223,7 +223,7 @@ global_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 3.0      # Steeper cost scaling for better path planning
-        inflation_radius: 0.5        # Increased for larger robot (1.4m x 0.8m)
+        inflation_radius: 0.9        # Increased for larger robot (1.4m x 0.8m)
       always_send_full_costmap: true
 
 map_server:

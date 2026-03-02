@@ -19,7 +19,6 @@ setup(
         ]),
         ('share/' + package_name + '/launch', [
             'launch/joystick_teleop.launch.py',
-            'launch/enhanced_odometry.launch.py',
             'launch/enhanced_localization.launch.py',
         ]),
     ],
