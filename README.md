@@ -66,17 +66,22 @@ source install/setup.bash
 ros2 launch bot_description gazebo.launch.xml
 ```
 
-2. Launch the enhanced odometry and localization stack:
+3. Launch the bot_controller:
+```bash
+ros2 launch bot_controller bot_controller.launch.xml
+```
+
+3. Launch the enhanced odometry and localization stack:
 ```bash
 ros2 launch custom_ackermann_controller enhanced_localization.launch.py
 ```
 
-3. Launch Navigation2 (for autonomous movement and obstacle avoidance):
+4. Launch Navigation2 (for autonomous movement and obstacle avoidance):
 ```bash
 ros2 launch bot_navigation navigation.launch.py
 ```
 
-4. For manual teleoperation via PS4 controller:
+5. For manual teleoperation via PS4 controller:
 ```bash
 ros2 launch custom_ackermann_controller joystick_teleop.launch.py
 ```
