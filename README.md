@@ -45,7 +45,7 @@ https://github.com/user-attachments/assets/eeff3caf-ddfd-4382-ad86-46505ce45fc5
 ```bash
 mkdir -p ~/ugv_ws/src
 cd ~/ugv_ws/src
-git clone [https://github.com/yenode/Ackermann-Drive-UGV.git](https://github.com/yenode/Ackermann-Drive-UGV.git)
+git clone https://github.com/yenode/Ackermann-Drive-UGV.git
 ```
 
 2. Install dependencies:
